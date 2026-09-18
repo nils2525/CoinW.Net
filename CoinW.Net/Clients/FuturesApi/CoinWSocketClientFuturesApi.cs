@@ -41,6 +41,8 @@ namespace CoinW.Net.Clients.FuturesApi
         internal CoinWSocketClientFuturesApi(ILoggerFactory? loggerFactory, CoinWSocketOptions options) :
             base(loggerFactory, CoinWExchange.Metadata.Id, options.Environment.SocketClientAddress!, options, options.FuturesOptions)
         {
+            RateLimiter = CoinWExchange.RateLimiter.Socket;
+
             RegisterPeriodicQuery(
                 "ping",
                 TimeSpan.FromSeconds(5),

@@ -45,6 +45,8 @@ namespace CoinW.Net.Clients.SpotApi
         internal CoinWSocketClientSpotApi(ILoggerFactory? loggerFactory, CoinWSocketOptions options) :
             base(loggerFactory, CoinWExchange.Metadata.Id, options.Environment.SocketClientAddress!, options, options.SpotOptions)
         {
+            RateLimiter = CoinWExchange.RateLimiter.Socket;
+
             _restClient = new CoinWRestClient(opts =>
             {
                 opts.Environment = options.Environment;

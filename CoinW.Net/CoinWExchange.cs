@@ -150,12 +150,23 @@ namespace CoinW.Net
                 .AddGuard(new RateLimitGuard(RateLimitGuard.PerHost, [], 100, TimeSpan.FromSeconds(1), RateLimitWindowType.Sliding));
             Spot.RateLimitTriggered += (x) => RateLimitTriggered?.Invoke(x);
             Spot.RateLimitUpdated += (x) => RateLimitUpdated?.Invoke(x);
+
+            // Provisional aggregate pacing for subscriptions and heartbeats; CoinW's documented limits vary by channel.
+            Socket = new RateLimitGate("Socket")
+                .AddGuard(new RateLimitGuard(RateLimitGuard.PerHost, new LimitItemTypeFilter(RateLimitItemType.Connection), 1, TimeSpan.FromSeconds(1), RateLimitWindowType.Decay, decayPerTimeSpan: 1))
+                .AddGuard(new RateLimitGuard(RateLimitGuard.PerHost, new LimitItemTypeFilter(RateLimitItemType.Request), 3, TimeSpan.FromMilliseconds(100), RateLimitWindowType.Decay, decayPerTimeSpan: 3));
+            Socket.RateLimitTriggered += (x) => RateLimitTriggered?.Invoke(x);
+            Socket.RateLimitUpdated += (x) => RateLimitUpdated?.Invoke(x);
         }
 
 
         internal IRateLimitGate CoinW { get; private set; }
         internal IRateLimitGate Futures { get; private set; }
         internal IRateLimitGate Spot { get; private set; }
+        /// <summary>
+        /// Shared per-host connection and message limits for Spot and Futures sockets
+        /// </summary>
+        internal IRateLimitGate Socket { get; private set; }
 
     }
 }
