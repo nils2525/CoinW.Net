@@ -9,6 +9,8 @@ using CoinW.Net.Enums;
 using CryptoExchange.Net.RateLimiting.Guards;
 using CoinW.Net.Objects.Models;
 using CryptoExchange.Net;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CoinW.Net.Clients.SpotApi
 {
@@ -114,6 +116,32 @@ namespace CoinW.Net.Clients.SpotApi
 
             var time = result.Data.Timestamp;
             result.Data.Timestamp = new DateTime(time.Year, time.Month, time.Day, time.Hour, time.Minute, time.Second, DateTimeKind.Utc).AddHours(-8);
+            return result;
+        }
+
+        #endregion
+
+        #region Get Historical Orders
+
+        /// <inheritdoc />
+        public async Task<HttpResult<CoinWHistoricalOrder[]>> GetHistoricalOrdersAsync(IEnumerable<long> orderIds, CancellationToken ct = default)
+        {
+            var ids = orderIds.ToArray();
+            if (ids.Length == 0 || ids.Length > 50)
+                throw new ArgumentException("Between 1 and 50 order ids are required", nameof(orderIds));
+
+            var parameters = new Parameters(CoinWExchange._parameterSerializationSettings);
+            parameters.Add("command", "getBatchHistoryOrders");
+            parameters.Add("orderIds", string.Join(",", ids));
+            // Live spot requests use this path; the documentation links to a futures host that rejects spot authentication.
+            var request = _definitions.GetOrCreate(HttpMethod.Post, _baseClient.BaseAddress, "/api/v1/private", CoinWExchange.RateLimiter.CoinW, 1, true,
+                limitGuard: new SingleLimitGuard(1, TimeSpan.FromSeconds(2), RateLimitWindowType.Sliding, keySelector: (def, key) => "getBatchHistoryOrders" + key), identifier: _baseClient.BaseAddress + "/getBatchHistoryOrders");
+            var result = await _baseClient.SendAsync<CoinWHistoricalOrder[]>(request, parameters, ct).ConfigureAwait(false);
+            if (!result.Success)
+                return result;
+
+            foreach (var order in result.Data)
+                order.Timestamp = DateTime.SpecifyKind(order.Timestamp, DateTimeKind.Utc).AddHours(-8);
             return result;
         }
 

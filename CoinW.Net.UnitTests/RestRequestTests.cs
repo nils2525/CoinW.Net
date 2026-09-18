@@ -62,6 +62,7 @@ namespace CoinW.Net.UnitTests
             await tester.ValidateAsync(client => client.SpotApi.Trading.CancelAllOrdersAsync("123"), "CancelAllOrders");
             await tester.ValidateAsync(client => client.SpotApi.Trading.GetOpenOrdersAsync("123"), "GetOpenOrders", nestedJsonProperty: "data");
             await tester.ValidateAsync(client => client.SpotApi.Trading.GetOrderAsync(123), "GetOrder", nestedJsonProperty: "data", ignoreProperties: ["date"]);
+            await tester.ValidateAsync(client => client.SpotApi.Trading.GetHistoricalOrdersAsync(new long[] { 123, 456 }), "GetHistoricalOrders", nestedJsonProperty: "data", ignoreProperties: ["date"]);
             await tester.ValidateAsync(client => client.SpotApi.Trading.GetOrderTransactionHistoryAsync("123"), "GetOrderTransactionHistory", nestedJsonProperty: "data");
             await tester.ValidateAsync(client => client.SpotApi.Trading.GetUserTradesAsync(), "GetUserTrades", nestedJsonProperty: "data.list");
 

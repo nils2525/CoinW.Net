@@ -4,6 +4,7 @@ using CoinW.Net.Enums;
 using CryptoExchange.Net.Objects;
 using CoinW.Net.Objects.Models;
 using System;
+using System.Collections.Generic;
 
 namespace CoinW.Net.Interfaces.Clients.SpotApi
 {
@@ -86,6 +87,19 @@ namespace CoinW.Net.Interfaces.Clients.SpotApi
         Task<HttpResult<CoinWOrderDetails>> GetOrderAsync(long orderId, CancellationToken ct = default);
 
         /// <summary>
+        /// Get historical orders by id. The documented retention is three months; unavailable orders are omitted.
+        /// <para>
+        /// Docs:<br />
+        /// <a href="https://www.coinw.com/api-doc/en/spot-trading/check/get-batch-historical-orders" /><br />
+        /// Endpoint:<br />
+        /// POST /api/v1/private?command=getBatchHistoryOrders
+        /// </para>
+        /// </summary>
+        /// <param name="orderIds">["orderIds"] Order ids, between 1 and 50</param>
+        /// <param name="ct">Cancellation token</param>
+        Task<HttpResult<CoinWHistoricalOrder[]>> GetHistoricalOrdersAsync(IEnumerable<long> orderIds, CancellationToken ct = default);
+
+        /// <summary>
         /// Get user order transaction history
         /// <para>
         /// Docs:<br />
@@ -110,10 +124,10 @@ namespace CoinW.Net.Interfaces.Clients.SpotApi
         /// </para>
         /// </summary>
         /// <param name="symbol">["symbol"] The symbol, for example `ETH_USDT`</param>
-        /// <param name="fromId">["after"] Filter by id</param>
-        /// <param name="toId">["before"] Filter by id</param>
-        /// <param name="startTime">["startAt"] Filter by start time</param>
-        /// <param name="endTime">["endAt"] Filter by end time</param>
+        /// <param name="fromId">["after"] Pagination token, not a trade id</param>
+        /// <param name="toId">["before"] Pagination token, not a trade id</param>
+        /// <param name="startTime">["startAt"] Exclusive start time</param>
+        /// <param name="endTime">["endAt"] Exclusive end time</param>
         /// <param name="limit">["limit"] Max number of results</param>
         /// <param name="ct">Cancellation token</param>
         Task<HttpResult<CoinWUserTrade[]>> GetUserTradesAsync(string? symbol = null, long? fromId = null, long? toId = null, DateTime? startTime = null, DateTime? endTime = null, int? limit = null, CancellationToken ct = default);
