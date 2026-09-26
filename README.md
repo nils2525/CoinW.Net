@@ -112,39 +112,21 @@ See [cryptoexchange-skills-hub](https://github.com/JKorf/cryptoexchange-skills-h
 
 ## Shared / unified API
 
-The CryptoExchange.Net [Shared APIs](https://cryptoexchange.jkorf.dev/docs/shared-api) provide exchange-agnostic, unified interfaces for common operations such as retrieving tickers, order books and balances, placing orders, and subscribing to market updates.
+The CryptoExchange.Net [Shared API V2](https://cryptoexchange.jkorf.dev/docs/shared-api) provides exchange-agnostic interfaces and models for common operations such as retrieving tickers, order books and balances, placing orders, and subscribing to market updates.
 
-This allows the same application code to work with different exchange libraries. The supported CoinW API surfaces expose their shared functionality through a `SharedClient` property. Because support differs between exchanges and API surfaces, call `Discover()` to inspect the available trading modes, environments, endpoints, and subscriptions at runtime.
+V2 uses a strict interface per capability. The `SharedApi` property on each API surface therefore exposes only the operations or subscriptions that surface actually supports. `ICoinWSharedApiClient` groups the exchange's Shared API surfaces for dependency injection and runtime capability lookup.
 
-### Supported shared interfaces
-
-| API | Type | Supported interfaces |
-|--|--|--|
-| `SpotApi` | REST | `IAssetsRestClient`, `IBalanceRestClient`, `IDepositRestClient`, `IKlineRestClient`, `IOrderBookRestClient`, `IRecentTradeRestClient`, `ISpotOrderRestClient`, `ISpotSymbolRestClient`, `ISpotTickerRestClient`, `ITransferRestClient`, `IWithdrawalRestClient`, `IWithdrawRestClient` |
-| `SpotApi` | WebSocket | `IBalanceSocketClient`, `IKlineSocketClient`, `IOrderBookSocketClient`, `ISpotOrderSocketClient`, `ITickerSocketClient`, `ITickersSocketClient`, `ITradeSocketClient` |
-| `FuturesApi` | REST | `IBalanceRestClient`, `IFeeRestClient`, `IFuturesOrderRestClient`, `IFuturesSymbolRestClient`, `IFuturesTickerRestClient`, `IFuturesTpSlRestClient`, `IKlineRestClient`, `IOrderBookRestClient`, `IRecentTradeRestClient` |
-| `FuturesApi` | WebSocket | `IBalanceSocketClient`, `IFuturesOrderSocketClient`, `IKlineSocketClient`, `IOrderBookSocketClient`, `IPositionSocketClient`, `ITickerSocketClient`, `ITradeSocketClient` |
-
-### Discover supported functionality
-
-```csharp
-var sharedClient = new CoinWRestClient().SpotApi.SharedClient;
-var clientInfo = sharedClient.Discover();
-
-Console.WriteLine(clientInfo);
-```
-
-### Example
+### Access a strict capability
 
 ```csharp
 using CoinW.Net.Clients;
 using CryptoExchange.Net.SharedApis;
 
-var sharedClient = new CoinWRestClient().SpotApi.SharedClient;
-ISpotTickerRestClient tickerClient = sharedClient;
+using var restClient = new CoinWRestClient();
+IGetTickerRest tickerClient = restClient.SpotApi.SharedApi;
 
 var symbol = new SharedSymbol(TradingMode.Spot, "ETH", "USDT");
-var result = await tickerClient.GetSpotTickerAsync(
+var result = await tickerClient.GetTickerAsync(
     new GetTickerRequest(symbol));
 
 if (!result.Success)
@@ -156,7 +138,7 @@ if (!result.Success)
 Console.WriteLine(result.Data.LastPrice);
 ```
 
-The request and response models belong to `CryptoExchange.Net.SharedApis`, so the same pattern can be used with another exchange's `SharedClient`.
+The request and response models belong to `CryptoExchange.Net.SharedApis`, so the same operation can accept another exchange's `IGetTickerRest` implementation. When using dependency injection, inject `ICoinWSharedApiClient` to access all of the exchange's Shared API surfaces or inject a capability such as `IGetTickerRest` directly. Use `GetCapability` on the aggregate when the operation, transport, or trading mode is selected at runtime.
 
 ## CryptoExchange.Net
 CoinW.Net is based on the [CryptoExchange.Net](https://github.com/JKorf/CryptoExchange.Net) base library. Other exchange API implementations based on the CryptoExchange.Net base library are available and follow the same logic.
@@ -251,6 +233,24 @@ Make a one time donation in a crypto currency of your choice. If you prefer to d
 Alternatively, sponsor me on Github using [Github Sponsors](https://github.com/sponsors/JKorf). 
 
 ## Release notes
+* Version 3.5.0 - 24 Sep 2026
+    * Updated CryptoExchange.Net to v13.0.0
+    * Shared APIs
+      * Added SharedApi V2 support
+      * Added `.SharedApi` property to clients
+      * Added `(I)CoinWSharedApiClient` containing all V2 SharedApi references
+      * Added `SharedApi` to `CoinWOptions` to provide SharedApi related options
+      * See https://cryptoexchange.jkorf.dev/docs/shared-api?sharedApiVersion=v2 for more info about the V2 update and https://github.com/JKorf/CryptoExchange.Net/blob/master/docs/SHARED_API_V2_MIGRATION.md for migrating from V1
+      * SharedApi V1 will still be supported 
+    * Rate limiting
+      * Added rate limit admission callback to client options to allow rate limit admission ruling on request definition
+      * Added `WithRateLimitAdmissionAsync` to client to allow rate limit admission ruling on a specific request
+      * Update rate limit safety margin logic
+      * Fixed some rate limit calculation issues
+    * Request coalescing
+      * Sending identical public GET requests on the same client at the same time will only send a single request to the server and use the same response
+      * Coalescing is enabled by default and can be disabled with the `RequestCoalescingEnabled` client option
+
 * Version 3.4.0 - 21 Aug 2026
     * Updated to CryptoExchange.Net v12.5.0
     * Added MakerFeePercentage, TakerFeePercentage to SharedFuturesSymbol
